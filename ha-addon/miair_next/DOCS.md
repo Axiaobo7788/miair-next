@@ -71,3 +71,17 @@ normally leave **LAN IP override** empty. The wrapper automatically selects the 
 MiAir Next uses that address in the HTTP audio URL that the Xiaomi speaker
 pulls. A loopback, container, VPN or otherwise unreachable address can make
 the AirPlay receiver discoverable while playback remains silent.
+
+## AirPlay downstream audio format
+
+MiAir Next receives AirPlay audio, decodes it to PCM, then exposes an HTTP stream
+that the Xiaomi speaker pulls through MiNA. Some Xiaomi firmware accepts the
+long-lived WAV stream but does not produce audible output. The HAOS wrapper therefore
+offers **AirPlay downstream audio format**:
+
+- `auto` (default): MP3 for S12A and the existing WAV-problematic model set; WAV otherwise.
+- `wav`: force the original low-latency PCM/WAV path.
+- `mp3`: force the ffmpeg 128 kbit/s MP3 compatibility path.
+
+This setting changes only the MiAir Next → Xiaomi-speaker HTTP leg. It does not alter
+AirPlay discovery, RTSP/RTP handling, Music Assistant grouping, or the incoming source.

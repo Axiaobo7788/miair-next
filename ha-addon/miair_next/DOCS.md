@@ -40,7 +40,7 @@ backups containing this App as sensitive.
 ## Updates
 
 This wrapper currently uses upstream image `mrdeer1997/miair-next:0.10.1`.
-The wrapper has its own version (`0.10.1-ha1`) so Home Assistant-specific fixes
+The wrapper has its own version (`0.10.1-ha2`) so Home Assistant-specific fixes
 can be released independently without modifying MiAir Next's application code.
 
 When updating the pinned upstream image, validate both amd64 and aarch64 and

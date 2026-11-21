@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.1-ha2
+
+- Fix Home Assistant Supervisor validation for the Web UI URL by using the required `[PORT:8300]` placeholder.
+- This fixes the repository being accepted while the MiAir Next App itself was skipped from the App store.
+
 ## 0.10.1-ha1
 
 - Add an experimental Home Assistant OS App wrapper.

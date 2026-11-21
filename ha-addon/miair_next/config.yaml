@@ -1,5 +1,5 @@
 name: "MiAir Next"
-version: "0.10.1-ha1"
+version: "0.10.1-ha2"
 slug: "miair_next"
 description: "Expose Xiaomi XiaoAI speakers as DLNA, AirPlay and Spotify Connect receivers."
 url: "https://github.com/Axiaobo7788/miair-next/tree/main/ha-addon/miair_next"
@@ -21,5 +21,5 @@ environment:
   MIAIR_GITHUB_REPO: "deerwan/miair-next"
   MIAIR_TOKEN_EXPIRE_HOURS: "24"
   MIAIR_DOCKER: "1"
-webui: "http://[HOST]:8300"
+webui: "http://[HOST]:[PORT:8300]"
 watchdog: "http://[HOST]:8300/api/v1/health"

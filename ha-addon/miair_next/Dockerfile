@@ -5,5 +5,11 @@
 # the app version in config.yaml.
 FROM mrdeer1997/miair-next:0.10.1
 
+ARG BUILD_VERSION
+ARG BUILD_ARCH
+
 LABEL org.opencontainers.image.title="MiAir Next Home Assistant App"
 LABEL org.opencontainers.image.source="https://github.com/Axiaobo7788/miair-next"
+LABEL io.hass.version="${BUILD_VERSION}" \
+      io.hass.type="app" \
+      io.hass.arch="${BUILD_ARCH}"

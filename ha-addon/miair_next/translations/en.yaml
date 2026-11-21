@@ -2,3 +2,6 @@ configuration:
   host_ip:
     name: "LAN IP override"
     description: "Leave empty to automatically use the IPv4 address on the HAOS default-route interface (recommended). Set it only when automatic selection is wrong."
+  airplay_stream_format:
+    name: "AirPlay downstream audio format"
+    description: "Auto selects MP3 for S12A and known WAV-problematic models while keeping low-latency WAV for others. Force MP3 or WAV for A/B testing."

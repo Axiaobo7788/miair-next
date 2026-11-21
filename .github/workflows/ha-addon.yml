@@ -1,0 +1,79 @@
+name: Validate Home Assistant App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ha-addon/**'
+      - 'repository.yaml'
+      - '.github/workflows/ha-addon.yml'
+  pull_request:
+    paths:
+      - 'ha-addon/**'
+      - 'repository.yaml'
+      - '.github/workflows/ha-addon.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-smoke:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [amd64, arm64]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build HAOS wrapper
+        uses: docker/build-push-action@v7
+        with:
+          context: ha-addon/miair_next
+          file: ha-addon/miair_next/Dockerfile
+          platforms: linux/${{ matrix.arch }}
+          push: false
+          load: true
+          tags: miair-next-haos:test-${{ matrix.arch }}
+          build-args: |
+            BUILD_VERSION=0.10.1-ha5
+            BUILD_ARCH=${{ matrix.arch }}
+
+      - name: Verify AirPlay downstream format selection
+        run: |
+          docker run --rm --entrypoint python             -e PYTHONPATH=/app/backend             miair-next-haos:test-${{ matrix.arch }} - <<'PY'
+          import os
+          from app.engine.airplay.server import AirPlayServer
+
+          def selected(hardware: str, requested: str) -> str:
+              os.environ["MIAIR_AIRPLAY_STREAM_FORMAT"] = requested
+              server = AirPlayServer(
+                  "192.168.1.20",
+                  device_name=f"test-{hardware}",
+                  speaker_hardware=hardware,
+              )
+              return server._stream_server._audio_format
+
+          assert selected("S12A", "auto") == "mp3"
+          assert selected("L05B", "auto") == "mp3"
+          assert selected("LX04", "auto") == "wav"
+          assert selected("LX04", "mp3") == "mp3"
+          assert selected("S12A", "wav") == "wav"
+          print("AirPlay downstream format smoke test passed")
+          PY
+
+      - name: Verify ffmpeg compatibility path exists
+        run: |
+          docker run --rm --entrypoint ffmpeg             miair-next-haos:test-${{ matrix.arch }} -version

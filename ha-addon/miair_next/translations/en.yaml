@@ -1,4 +1,4 @@
 configuration:
   host_ip:
-    name: "HAOS LAN IP"
-    description: "Optional. Force MiAir Next to advertise this LAN address to Xiaomi speakers. Use it when AirPlay is discoverable but playback is silent."
+    name: "LAN IP override"
+    description: "Leave empty to automatically use the IPv4 address on the HAOS default-route interface (recommended). Set it only when automatic selection is wrong."

@@ -1,0 +1,4 @@
+configuration:
+  host_ip:
+    name: "HAOS 局域网 IP"
+    description: "可选。强制 MiAir Next 使用此 LAN 地址向小爱音箱提供音频流；用于修复 AirPlay 可发现但播放无声的问题。请填写 Home Assistant 主机在小爱所在局域网中的 IPv4 地址。"

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.1-ha3
+
+- Add an optional HAOS LAN IP override and export it as `MIAIR_HOSTNAME`.
+- Use the standard Supervisor `/data` path for persistent MiAir Next state.
+- Add a wrapper entrypoint while preserving upstream Avahi/D-Bus and privilege-drop startup.
+- Document the AirPlay-visible-but-silent recovery path.
+
 ## 0.10.1-ha2
 
 - Fix Home Assistant Supervisor validation for the Web UI URL by using the required `[PORT:8300]` placeholder.

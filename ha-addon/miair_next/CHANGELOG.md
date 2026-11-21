@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.1-ha5
+
+- Add selectable AirPlay downstream format: `auto`, `wav`, or `mp3`.
+- In `auto`, prefer MP3 for S12A plus existing known WAV-problematic models; keep WAV elsewhere.
+- Apply the compatibility change as a thin build-time overlay on upstream 0.10.1 rather than forking unrelated runtime code.
+- Log the selected downstream format at startup and per AirPlay receiver.
+
 ## 0.10.1-ha4
 
 - Automatically select the HAOS IPv4 address from the default-route interface.

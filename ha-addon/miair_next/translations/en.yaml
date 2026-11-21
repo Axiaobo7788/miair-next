@@ -1,0 +1,4 @@
+configuration:
+  host_ip:
+    name: "HAOS LAN IP"
+    description: "Optional. Force MiAir Next to advertise this LAN address to Xiaomi speakers. Use it when AirPlay is discoverable but playback is silent."

@@ -51,9 +51,11 @@ def iface_ipv4(name):
 if manual:
     if usable_ipv4(manual):
         print(f"manual|{manual}|user")
-    else:
-        print(f"invalid|{manual}|user")
-    raise SystemExit
+        raise SystemExit
+    print(
+        f"[MiAir Next HAOS] warning: invalid manual host_ip={manual}; falling back to automatic detection",
+        file=sys.stderr,
+    )
 
 virtual_markers = (
     "docker", "veth", "tailscale", "zerotier", "tun", "tap", "wg",
@@ -121,10 +123,6 @@ case "$mode" in
   auto)
     export MIAIR_HOSTNAME="$host_ip"
     printf '%s\n' "[MiAir Next HAOS] LAN address: $MIAIR_HOSTNAME (auto, $source)"
-    ;;
-  invalid)
-    printf '%s\n' "[MiAir Next HAOS] warning: invalid manual host_ip=$host_ip; ignoring it and using MiAir Next auto-detection" >&2
-    unset MIAIR_HOSTNAME || true
     ;;
   *)
     printf '%s\n' "[MiAir Next HAOS] wrapper could not determine a LAN address; using MiAir Next auto-detection"

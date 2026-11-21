@@ -22,4 +22,4 @@ environment:
   MIAIR_TOKEN_EXPIRE_HOURS: "24"
   MIAIR_DOCKER: "1"
 webui: "http://[HOST]:[PORT:8300]"
-watchdog: "http://[HOST]:8300/api/v1/health"
+watchdog: "http://[HOST]:[PORT:8300]/api/v1/health"

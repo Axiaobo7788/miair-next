@@ -66,9 +66,7 @@ verify that HAOS and the Xiaomi speakers are on the same multicast-capable LAN.
 ## Silent AirPlay playback on HAOS
 
 If the AirPlay receiver is visible but the Xiaomi speaker produces no sound,
-open the App configuration and set **HAOS LAN IP** to the Home Assistant
-host IPv4 address reachable by the speaker (for example `192.168.1.20`).
-The wrapper exports this value as `MIAIR_HOSTNAME` before starting MiAir Next.
+normally leave **LAN IP override** empty. The wrapper automatically selects the IPv4 address on the HAOS default-route interface and exports it as `MIAIR_HOSTNAME` before starting MiAir Next. If the host has multiple LAN/VPN interfaces and the automatic choice is wrong, set the override to the Home Assistant host IPv4 address reachable by the speaker (for example `192.168.1.20`).
 
 MiAir Next uses that address in the HTTP audio URL that the Xiaomi speaker
 pulls. A loopback, container, VPN or otherwise unreachable address can make

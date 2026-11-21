@@ -130,6 +130,21 @@ case "$mode" in
     ;;
 esac
 
+# Select the HTTP format fed from MiAir Next to the Xiaomi speaker.
+stream_format="$(python3 - "$OPTIONS_FILE" <<'PY'
+import json
+import sys
+try:
+    with open(sys.argv[1], encoding="utf-8") as f:
+        value = str(json.load(f).get("airplay_stream_format", "auto") or "auto").strip().lower()
+except Exception:
+    value = "auto"
+print(value if value in {"auto", "wav", "mp3"} else "auto")
+PY
+)"
+export MIAIR_AIRPLAY_STREAM_FORMAT="$stream_format"
+printf '%s\n' "[MiAir Next HAOS] AirPlay downstream format: $MIAIR_AIRPLAY_STREAM_FORMAT"
+
 export MIAIR_DATA="${MIAIR_DATA:-/data}"
 
 # Preserve upstream discovery, Avahi/D-Bus setup and privilege drop.

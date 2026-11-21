@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.1-ha4
+
+- Automatically select the HAOS IPv4 address from the default-route interface.
+- Keep `host_ip` as an optional manual override instead of a required setting.
+- Fall back to MiAir Next's own detection only if wrapper-level detection cannot find a usable address.
+- Log the selected address and its source at startup.
+
 ## 0.10.1-ha3
 
 - Add an optional HAOS LAN IP override and export it as `MIAIR_HOSTNAME`.

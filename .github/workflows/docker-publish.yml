@@ -12,6 +12,8 @@ on:
       - 'website/**'
       - '.gitignore'
       - 'img/**'
+      - 'ha-addon/**'
+      - 'repository.yaml'
   # PR 触发: 跑测试和不发布的镜像构建; 发布任务由 if 守卫跳过
   # 不加 paths-ignore, 确保任何 PR 都产出 test check 供合并门禁判定
   pull_request:

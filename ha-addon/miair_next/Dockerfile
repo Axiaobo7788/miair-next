@@ -13,3 +13,8 @@ LABEL org.opencontainers.image.source="https://github.com/Axiaobo7788/miair-next
 LABEL io.hass.version="${BUILD_VERSION}" \
       io.hass.type="app" \
       io.hass.arch="${BUILD_ARCH}"
+
+COPY ha-entrypoint.sh /usr/local/bin/ha-entrypoint.sh
+RUN chmod 0755 /usr/local/bin/ha-entrypoint.sh
+ENTRYPOINT ["/usr/local/bin/ha-entrypoint.sh"]
+CMD ["python", "run.py"]

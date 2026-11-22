@@ -85,3 +85,15 @@ offers **AirPlay downstream audio format**:
 
 This setting changes only the MiAir Next → Xiaomi-speaker HTTP leg. It does not alter
 AirPlay discovery, RTSP/RTP handling, Music Assistant grouping, or the incoming source.
+
+## Audio-ready playback boundary
+
+MiAir Next 0.10.1 originally issued the Xiaomi `play_url` command immediately
+when the AirPlay sender entered RECORD. The HAOS fork now waits until the
+receiver has decoded non-silent PCM and queued it for HTTP output. This mirrors
+MiAirX's audio-ready boundary and avoids making Xiaomi firmware connect to a
+live stream before actual audio exists.
+
+The log now reports decoded PCM peak/RMS, MP3 encoder output bytes, and a
+post-command Xiaomi playback-state snapshot. These are diagnostics, not proof
+of acoustic output, but they isolate the remaining black-box boundary.

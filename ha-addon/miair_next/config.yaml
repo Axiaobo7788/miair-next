@@ -1,5 +1,5 @@
 name: "MiAir Next"
-version: "0.10.1-ha5"
+version: "0.10.1-ha6"
 slug: "miair_next"
 description: "Expose Xiaomi XiaoAI speakers as DLNA, AirPlay and Spotify Connect receivers."
 url: "https://github.com/Axiaobo7788/miair-next/tree/main/ha-addon/miair_next"

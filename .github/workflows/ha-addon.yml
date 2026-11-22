@@ -48,7 +48,7 @@ jobs:
           load: true
           tags: miair-next-haos:test-${{ matrix.arch }}
           build-args: |
-            BUILD_VERSION=0.10.1-ha5
+            BUILD_VERSION=0.10.1-ha6
             BUILD_ARCH=${{ matrix.arch }}
 
       - name: Verify AirPlay downstream format selection
@@ -71,7 +71,29 @@ jobs:
           assert selected("LX04", "auto") == "wav"
           assert selected("LX04", "mp3") == "mp3"
           assert selected("S12A", "wav") == "wav"
-          print("AirPlay downstream format smoke test passed")
+
+          class FakeSocket:
+              def __init__(self):
+                  self.data = b""
+              def sendall(self, data):
+                  self.data += data
+
+          server = AirPlayServer(
+              "192.168.1.20",
+              device_name="ready-boundary",
+              speaker_hardware="S12A",
+              audio_format="wav",
+          )
+          calls = []
+          server.on_play_start = calls.append
+          sock = FakeSocket()
+          server._handle_record(sock, "1")
+          assert calls == []
+          server._notify_audio_ready(b"\\x00" * 1408)
+          assert calls == []
+          server._notify_audio_ready((1200).to_bytes(2, "little", signed=True) * 704)
+          assert calls == [server._stream_server.stream_url]
+          print("AirPlay downstream format + audio-ready smoke test passed")
           PY
 
       - name: Verify ffmpeg compatibility path exists

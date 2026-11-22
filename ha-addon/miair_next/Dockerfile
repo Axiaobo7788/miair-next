@@ -14,8 +14,8 @@ LABEL io.hass.version="${BUILD_VERSION}" \
       io.hass.type="app" \
       io.hass.arch="${BUILD_ARCH}"
 
-COPY patch_airplay_format.py /tmp/patch_airplay_format.py
-RUN python3 /tmp/patch_airplay_format.py && rm /tmp/patch_airplay_format.py
+COPY patch_airplay_runtime.py /tmp/patch_airplay_runtime.py
+RUN python3 /tmp/patch_airplay_runtime.py && rm /tmp/patch_airplay_runtime.py
 
 COPY ha-entrypoint.sh /usr/local/bin/ha-entrypoint.sh
 RUN chmod 0755 /usr/local/bin/ha-entrypoint.sh

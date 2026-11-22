@@ -750,11 +750,20 @@ class AudioStreamServer:
 
         threading.Thread(target=feed_ffmpeg, daemon=True).start()
 
+        bytes_sent = 0
+        first_output_logged = False
         try:
             while self._active and not conn_abort.is_set():
                 audio_data = await asyncio.to_thread(proc.stdout.read, 8192)
                 if not audio_data or self._abort:
                     break
+                if not first_output_logged:
+                    first_output_logged = True
+                    log.info(
+                        f"{self._label}: MP3 编码器开始产出有效数据 "
+                        f"(首包={len(audio_data)} bytes, prefix={audio_data[:4].hex()})"
+                    )
+                bytes_sent += len(audio_data)
                 await response.write(audio_data)
         except (ConnectionResetError, BrokenPipeError):
             log.info(f"{self._label}: 音箱断开 MP3 音频流连接")
@@ -776,5 +785,8 @@ class AudioStreamServer:
             await response.write_eof()
         except Exception:
             pass
-        log.info(f"{self._label}: MP3 音频流结束")
+        if bytes_sent:
+            log.info(f"{self._label}: MP3 音频流结束 (已发送 {bytes_sent} bytes)")
+        else:
+            log.warning(f"{self._label}: MP3 音频流结束但编码器没有输出任何字节")
         return response

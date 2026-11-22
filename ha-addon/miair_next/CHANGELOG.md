@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1-ha6
+
+- Mirror MiAirX's safer AirPlay boundary: accept RECORD and buffer first, then issue the Xiaomi play command only after non-silent decoded PCM exists.
+- Log first decoded PCM peak/RMS/non-zero sample evidence so silent/decryption failures are distinguishable from Xiaomi playback failures.
+- Log the first MP3 encoder output and total encoded bytes sent.
+- Re-query Xiaomi playback state after the play command and log speaker status, volume, HTTP client count, PCM bytes, decode errors and decrypt failures.
+- Add upstream-source regression tests and HAOS smoke coverage for the audio-ready boundary.
+
 ## 0.10.1-ha5
 
 - Add selectable AirPlay downstream format: `auto`, `wav`, or `mp3`.

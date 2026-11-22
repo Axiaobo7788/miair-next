@@ -215,6 +215,7 @@ class SpeakerAirPlay:
                 return
             if success:
                 log.info(f"AirPlay 音频已在 {self.device_name} 开始播放: {stream_url}")
+                asyncio.create_task(self._log_downstream_status(stream_url))
                 self._start_poll()
                 # 快速路径未拿到 audioID 时启动歌词监听（网易云等发送端元数据迟到，切歌也靠它更新）
                 if audio_id is None and self.config and getattr(self.config, "touchscreen_lyrics", False):
@@ -242,6 +243,35 @@ class SpeakerAirPlay:
                 log.warning(f"AirPlay 音频在 {self.device_name} 播放失败")
         except Exception as e:
             log.error(f"AirPlay 播放到 {self.device_name} 失败: {e}")
+
+    async def _log_downstream_status(self, stream_url: str) -> None:
+        """Confirm what the Xiaomi firmware reports after accepting play_url."""
+        await asyncio.sleep(1.5)
+        if not self._airplay_active or self._stream_url != stream_url:
+            return
+        try:
+            status = await self.controller.get_status()
+            diagnostics = (
+                self.airplay_server.get_audio_diagnostics()
+                if self.airplay_server
+                else {}
+            )
+            log.info(
+                "AirPlay 下游状态确认 %s: speaker_status=%s idle=%s volume=%s "
+                "http_clients=%s pcm_bytes=%s decode_success=%s decode_errors=%s "
+                "decrypt_failures=%s",
+                self.device_name,
+                status.get("status"),
+                status.get("idle", False),
+                status.get("volume"),
+                diagnostics.get("stream_clients"),
+                diagnostics.get("pcm_bytes"),
+                diagnostics.get("decode_success"),
+                diagnostics.get("decode_errors"),
+                diagnostics.get("decrypt_failures"),
+            )
+        except Exception as e:
+            log.warning(f"AirPlay 下游状态确认失败 ({self.device_name}): {e}")
 
     async def _resolve_audio_id(self) -> str | None:
         """触屏歌词匹配: 用 DAAP 元数据搜小米曲库换 audioID

@@ -13,6 +13,7 @@ import base64
 from collections import deque
 from dataclasses import dataclass
 import logging
+import math
 import os
 import queue
 import re
@@ -450,7 +451,7 @@ class AirPlayServer:
     实现 AirPlay 1 (RAOP) 协议接收音频，解码后输出到 HTTP 音频流。
     """
 
-    def __init__(self, hostname: str, device_name: str = "MiAir", shared_zeroconf=None, speaker_hardware: str = ""):
+    def __init__(self, hostname: str, device_name: str = "MiAir", shared_zeroconf=None, speaker_hardware: str = "", audio_format: str | None = None):
         self.hostname = hostname
         self.device_name = device_name
         self.speaker_hardware = speaker_hardware
@@ -463,8 +464,37 @@ class AirPlayServer:
         self._rtsp_thread: threading.Thread | None = None
         self._running = False
 
-        # 音频流服务器 - 统一使用 WAV 输出（零编码延迟，不卡顿）
-        self._stream_server = AudioStreamServer(hostname, 0, audio_format="wav")
+        # 小米音箱的 HTTP 播放栈对实时长流的兼容性并不一致。
+        # 默认保持 WAV；HAOS/容器可通过环境变量切换兼容输出。
+        requested_format = (
+            audio_format
+            or os.getenv("MIAIR_AIRPLAY_STREAM_FORMAT", "auto")
+            or "auto"
+        ).strip().lower()
+        if requested_format not in {"auto", "wav", "mp3"}:
+            log.warning(
+                "未知 MIAIR_AIRPLAY_STREAM_FORMAT=%s，回退 auto",
+                requested_format,
+            )
+            requested_format = "auto"
+        if requested_format == "auto":
+            mp3_preferred_hardware = {"S12A", "L05B", "L05C", "LX06", "L16A"}
+            selected_format = (
+                "mp3"
+                if (speaker_hardware or "").upper() in mp3_preferred_hardware
+                else "wav"
+            )
+        else:
+            selected_format = requested_format
+        log.info(
+            "AirPlay 下游音频格式: %s (requested=%s, hardware=%s)",
+            selected_format,
+            requested_format,
+            speaker_hardware or "unknown",
+        )
+        self._stream_server = AudioStreamServer(
+            hostname, 0, audio_format=selected_format
+        )
         self.stream_port = 0
 
         # mDNS 广播
@@ -486,6 +516,13 @@ class AirPlayServer:
         self.on_play_start: Callable | None = None
         self.on_play_stop: Callable | None = None
         self.on_volume_change: Callable[[float], None] | None = None
+        # Do not ask the Xiaomi speaker to pull the HTTP stream until the
+        # AirPlay receiver has decoded real, non-silent PCM. MiAirX uses the
+        # same audio-ready boundary; triggering at RECORD can make some Xiaomi
+        # firmware latch onto an empty/not-yet-ready live stream.
+        self._play_start_pending = False
+        self._pcm_probe_logged_silent = False
+        self._pcm_probe_logged_audio = False
 
         # FairPlay
         self._playfair = PlayFair()
@@ -868,6 +905,9 @@ class AirPlayServer:
 
                 elif method == "ANNOUNCE":
                     self._reset_audio_diagnostics()
+                    self._play_start_pending = False
+                    self._pcm_probe_logged_silent = False
+                    self._pcm_probe_logged_audio = False
                     self._is_playing = True
                     self._daap_meta = None  # 新会话，清除上一会话元数据
                     self._daap_candidates = []
@@ -890,10 +930,12 @@ class AirPlayServer:
                         rtp_thread.start()
 
                 elif method == "PAUSE":
+                    self._play_start_pending = False
                     self._stream_server.stop_streaming()
                     self._send_rtsp_response(sock, 200, cseq)
 
                 elif method == "TEARDOWN":
+                    self._play_start_pending = False
                     self._is_playing = False
                     self._client_name = ""
                     self._daap_meta = None
@@ -1419,19 +1461,67 @@ class AirPlayServer:
             log.info("RTCP 线程已停止")
 
     def _handle_record(self, sock: socket.socket, cseq: str):
-        """处理 RECORD 请求 - 开始播放"""
+        """处理 RECORD 请求 - 开始接收，等首个真实 PCM 后再唤醒小爱。"""
         self._stream_server.start_streaming()
-
-        if self.on_play_start:
-            try:
-                self.on_play_start(self._stream_server.stream_url)
-            except Exception as e:
-                log.error(f"on_play_start error: {e}")
+        self._play_start_pending = True
+        log.info("AirPlay RECORD 已接受，等待首个非静音 PCM 后启动小爱拉流")
 
         self._send_rtsp_response(sock, 200, cseq, {
             "Audio-Latency": "0",
             "RTP-Info": f"seq={self._last_rtp_seq};rtptime={self._last_rtp_timestamp}",
         })
+
+    def _notify_audio_ready(self, pcm: bytes) -> None:
+        """Log decoded PCM quality and start downstream playback exactly once.
+
+        The Xiaomi HTTP player is a black box. Numerical PCM evidence lets us
+        distinguish a healthy AirPlay decoder from a downstream playback issue.
+        A completely silent fallback frame must not wake the speaker.
+        """
+        if not pcm:
+            return
+
+        usable = len(pcm) & ~1
+        if usable <= 0:
+            return
+        probe = pcm[: min(usable, 8192)]
+        samples = [sample[0] for sample in struct.iter_unpack("<h", probe)]
+        if not samples:
+            return
+        nonzero = sum(1 for sample in samples if sample)
+        peak = max(abs(sample) for sample in samples)
+        rms = math.sqrt(sum(sample * sample for sample in samples) / len(samples))
+
+        if nonzero == 0:
+            if not self._pcm_probe_logged_silent:
+                self._pcm_probe_logged_silent = True
+                log.warning(
+                    "AirPlay PCM 首块为全静音: bytes=%s samples=%s peak=0 rms=0",
+                    len(pcm),
+                    len(samples),
+                )
+            return
+
+        if not self._pcm_probe_logged_audio:
+            self._pcm_probe_logged_audio = True
+            log.info(
+                "AirPlay PCM 已验证有声: bytes=%s samples=%s nonzero=%s peak=%s rms=%.1f",
+                len(pcm),
+                len(samples),
+                nonzero,
+                peak,
+                rms,
+            )
+
+        if not self._play_start_pending:
+            return
+        self._play_start_pending = False
+        if self.on_play_start:
+            try:
+                log.info("AirPlay 首个有效 PCM 已就绪，开始通知小爱拉取 HTTP 音频流")
+                self.on_play_start(self._stream_server.stream_url)
+            except Exception as e:
+                log.error(f"on_play_start error: {e}")
 
     def _timing_loop(self, timing_socket: socket.socket):
         """双向 NTP 时间同步循环
@@ -1608,6 +1698,7 @@ class AirPlayServer:
                     if decoded:
                         _write_pcm(decoded)
                         self._update_audio_metrics(pcm_bytes=len(decoded))
+                        self._notify_audio_ready(decoded)
             except Exception as e:
                 log.error(f"RTP 解码线程异常: {e}")
 
